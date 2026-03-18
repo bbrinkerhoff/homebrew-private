@@ -10,7 +10,7 @@ class Ffmpeg < Formula
   depends_on "pkg-config" => :build
 
   # AV1
-  depends_on "libaom"     # libaom-av1 encoder/decoder
+  depends_on "aom"        # libaom-av1 encoder/decoder
   depends_on "dav1d"      # fast AV1 decoder
   depends_on "svt-av1"    # SVT-AV1 encoder
 
