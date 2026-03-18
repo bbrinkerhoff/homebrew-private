@@ -1,4 +1,4 @@
-cask "czkawka-krokiet" do
+cask "czkawka_krokiet" do
   version "11.0.1"
   sha256 "04bc51fa769e8373ef6c2425c08cd7016b2cc826ec29e25d3a403bc8a56e8a70"
 
