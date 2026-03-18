@@ -1,4 +1,4 @@
-cask "czkawka_krokiet" do
+cask "czkawka-krokiet" do
   version "11.0.1"
   sha256 "04bc51fa769e8373ef6c2425c08cd7016b2cc826ec29e25d3a403bc8a56e8a70"
 
@@ -9,5 +9,5 @@ cask "czkawka_krokiet" do
 
   depends_on arch: :arm64
 
-  binary "mac_krokiet_arm64"
+  binary "mac_krokiet_arm64", target: "czkawka_krokiet"
 end
