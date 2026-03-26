@@ -1,4 +1,4 @@
-cask "3uTools" do
+cask "3utools" do
   version "9.02.003"
 
   on_arm do
