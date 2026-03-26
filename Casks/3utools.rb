@@ -17,5 +17,11 @@ cask "3utools" do
   desc "Toolbox for managing iOS devices"
   homepage "https://www.3u.com/"
 
-  pkg "3utools.pkg"
+  on_arm do
+    pkg "3utools_arm64.pkg"
+  end
+
+  on_intel do
+    pkg "3utools.pkg"
+  end
 end
