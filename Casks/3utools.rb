@@ -17,5 +17,5 @@ cask "3utools" do
   desc "Toolbox for managing iOS devices"
   homepage "https://www.3u.com/"
 
-  app "3uTools.app"
+  pkg "3utools.pkg"
 end
