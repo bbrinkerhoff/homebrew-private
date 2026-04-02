@@ -6,16 +6,26 @@ class Sikulix < Formula
   version "2.0.5"
   license "MIT"
 
-  depends_on "openjdk"
-
   def install
     libexec.install "sikulixide-2.0.5.jar" => "sikulixide.jar"
 
     (bin/"sikulix").write <<~EOS
       #!/bin/bash
-      export JAVA_HOME="#{Formula["openjdk"].opt_prefix}"
-      export PATH="#{Formula["openjdk"].opt_bin}:$PATH"
+      JAVA_HOME="$(/usr/libexec/java_home -v 11 2>/dev/null)"
+      if [ -z "$JAVA_HOME" ]; then
+        echo "Error: JDK 11 not found. Install with: brew install --cask bbrinkerhoff/private/temurin-jdk11" >&2
+        exit 1
+      fi
+      export JAVA_HOME
+      export PATH="$JAVA_HOME/bin:$PATH"
       exec java -jar "#{libexec}/sikulixide.jar" "$@"
+    EOS
+  end
+
+  def caveats
+    <<~EOS
+      SikuliX requires JDK 11. Install the recommended JDK with:
+        brew install --cask bbrinkerhoff/private/temurin-jdk11
     EOS
   end
 
