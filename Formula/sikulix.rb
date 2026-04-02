@@ -18,10 +18,16 @@ class Sikulix < Formula
       fi
       export JAVA_HOME
       export PATH="$JAVA_HOME/bin:$PATH"
-      java -jar "#{libexec}/sikulixide.jar" "$@" &
-      SIKULIX_PID=$!
-      trap "kill $SIKULIX_PID 2>/dev/null; wait $SIKULIX_PID 2>/dev/null" EXIT INT TERM
-      wait $SIKULIX_PID
+      cleanup() {
+        pkill -f "sikulixide.jar" 2>/dev/null
+      }
+      trap cleanup EXIT INT TERM
+      java -jar "#{libexec}/sikulixide.jar" "$@"
+      # SikuliX re-launches itself as a detached process; poll until it exits
+      sleep 1
+      while pgrep -f "sikulixide.jar" > /dev/null 2>&1; do
+        sleep 1
+      done
     EOS
   end
 
