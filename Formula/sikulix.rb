@@ -18,7 +18,10 @@ class Sikulix < Formula
       fi
       export JAVA_HOME
       export PATH="$JAVA_HOME/bin:$PATH"
-      exec java -jar "#{libexec}/sikulixide.jar" "$@"
+      java -jar "#{libexec}/sikulixide.jar" "$@" &
+      SIKULIX_PID=$!
+      trap "kill $SIKULIX_PID 2>/dev/null; wait $SIKULIX_PID 2>/dev/null" EXIT INT TERM
+      wait $SIKULIX_PID
     EOS
   end
 
