@@ -1,6 +1,6 @@
 cask "ejectify" do
   version "HEAD-18f51a3"
-  sha256 "db205ae2739dfb478b56d839f01839aa8238d9200810cad0adc8f8e412addc7c"
+  sha256 "1b1bff6b7147f8eb1ea44d1ea96c7d929137e2ee439a7f8dd4d93da7c2bea414"
 
   url "https://github.com/bbrinkerhoff/homebrew-private/releases/download/ejectify-#{version.split("-").last}/Ejectify.zip"
   name "Ejectify"
