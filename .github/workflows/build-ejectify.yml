@@ -1,0 +1,88 @@
+name: Build Ejectify
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * 1" # Every Monday at 6am UTC
+
+jobs:
+  build:
+    runs-on: macos-15
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout tap
+        uses: actions/checkout@v4
+
+      - name: Get latest Ejectify commit
+        id: upstream
+        run: |
+          SHA=$(curl -sf https://api.github.com/repos/nielsmouthaan/ejectify-macos/commits/main | jq -r '.sha')
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+          echo "short_sha=${SHA:0:7}" >> "$GITHUB_OUTPUT"
+          echo "version=HEAD-${SHA:0:7}" >> "$GITHUB_OUTPUT"
+
+      - name: Check if already built
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="ejectify-HEAD-${{ steps.upstream.outputs.short_sha }}"
+          if gh release view "$TAG" &>/dev/null; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Already built $TAG, skipping."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Clone Ejectify source
+        if: steps.check.outputs.skip == 'false'
+        run: |
+          git clone https://github.com/nielsmouthaan/ejectify-macos.git
+          cd ejectify-macos
+          git checkout ${{ steps.upstream.outputs.sha }}
+
+      - name: Build
+        if: steps.check.outputs.skip == 'false'
+        run: |
+          xcodebuild \
+            -project ejectify-macos/Ejectify.xcodeproj \
+            -scheme Ejectify \
+            -configuration Release \
+            SYMROOT="$GITHUB_WORKSPACE/build" \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            DEVELOPMENT_TEAM=""
+
+      - name: Package
+        if: steps.check.outputs.skip == 'false'
+        run: |
+          cd build/Release
+          zip -r --symlinks "$GITHUB_WORKSPACE/Ejectify.zip" Ejectify.app
+          cd "$GITHUB_WORKSPACE"
+          echo "SHA256=$(shasum -a 256 Ejectify.zip | awk '{print $1}')" >> "$GITHUB_ENV"
+
+      - name: Create release
+        if: steps.check.outputs.skip == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create \
+            "ejectify-${{ steps.upstream.outputs.version }}" \
+            Ejectify.zip \
+            --title "Ejectify ${{ steps.upstream.outputs.version }}" \
+            --notes "Built from [nielsmouthaan/ejectify-macos@${{ steps.upstream.outputs.short_sha }}](https://github.com/nielsmouthaan/ejectify-macos/commit/${{ steps.upstream.outputs.sha }})"
+
+      - name: Update cask
+        if: steps.check.outputs.skip == 'false'
+        run: |
+          VERSION="${{ steps.upstream.outputs.version }}"
+          sed -i '' "s/version \".*\"/version \"$VERSION\"/" Casks/ejectify.rb
+          sed -i '' "s/sha256 \".*\"/sha256 \"$SHA256\"/" Casks/ejectify.rb
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Casks/ejectify.rb
+          git commit -m "chore: update ejectify to $VERSION"
+          git push
