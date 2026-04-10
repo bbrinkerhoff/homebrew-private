@@ -72,8 +72,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create \
-            "ejectify-${{ steps.upstream.outputs.short_sha }}" \
+          TAG="ejectify-${{ steps.upstream.outputs.short_sha }}"
+          git tag "$TAG"
+          git push origin "$TAG"
+          gh release create "$TAG" \
             Ejectify.zip \
             --title "Ejectify ${{ steps.upstream.outputs.version }}" \
             --notes "Built from [nielsmouthaan/ejectify-macos@${{ steps.upstream.outputs.short_sha }}](https://github.com/nielsmouthaan/ejectify-macos/commit/${{ steps.upstream.outputs.sha }})"
