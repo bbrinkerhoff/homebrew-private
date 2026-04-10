@@ -2,7 +2,7 @@ cask "ejectify" do
   version "HEAD-18f51a3"
   sha256 "db205ae2739dfb478b56d839f01839aa8238d9200810cad0adc8f8e412addc7c"
 
-  url "https://github.com/bbrinkerhoff/homebrew-private/releases/download/ejectify-#{version}/Ejectify.zip"
+  url "https://github.com/bbrinkerhoff/homebrew-private/releases/download/ejectify-#{version.split("-").last}/Ejectify.zip"
   name "Ejectify"
   desc "Menu bar app that safely ejects external drives before sleep"
   homepage "https://ejectify.app"

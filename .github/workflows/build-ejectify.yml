@@ -31,7 +31,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="ejectify-HEAD-${{ steps.upstream.outputs.short_sha }}"
+          TAG="ejectify-${{ steps.upstream.outputs.short_sha }}"
           if gh release view "$TAG" &>/dev/null; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
             echo "Already built $TAG, skipping."
@@ -73,7 +73,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create \
-            "ejectify-${{ steps.upstream.outputs.version }}" \
+            "ejectify-${{ steps.upstream.outputs.short_sha }}" \
             Ejectify.zip \
             --title "Ejectify ${{ steps.upstream.outputs.version }}" \
             --notes "Built from [nielsmouthaan/ejectify-macos@${{ steps.upstream.outputs.short_sha }}](https://github.com/nielsmouthaan/ejectify-macos/commit/${{ steps.upstream.outputs.sha }})"
