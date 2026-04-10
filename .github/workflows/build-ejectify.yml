@@ -20,8 +20,14 @@ jobs:
 
       - name: Get latest Ejectify commit
         id: upstream
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          SHA=$(curl -sf https://api.github.com/repos/nielsmouthaan/ejectify-macos/commits/main | jq -r '.sha')
+          SHA=$(gh api repos/nielsmouthaan/ejectify-macos/commits/main --jq '.sha')
+          if [[ -z "$SHA" ]]; then
+            echo "Failed to fetch upstream SHA" >&2
+            exit 1
+          fi
           echo "sha=$SHA" >> "$GITHUB_OUTPUT"
           echo "short_sha=${SHA:0:7}" >> "$GITHUB_OUTPUT"
           echo "version=HEAD-${SHA:0:7}" >> "$GITHUB_OUTPUT"
