@@ -20,21 +20,26 @@ unless defined?(NextcloudAuthDownloadStrategy)
   end
 end
 
-cask "ejectify" do
-  version "2.0.1"
-  sha256 "ce762263f95ef67f29ed80b681b33a0477d813e9952ddcfd062e2f160e2719ff"
+cask "freefilesync" do
+  version "14.9"
+  sha256 "ea4351535ae3a90e893f67c1668a6ac4bd30e501f52accaadd676ba48a182128"
 
-  url "https://nextcloud.invalid/Ejectify/Ejectify-#{version}.dmg",
+  url "https://nextcloud.invalid/FreeFileSync/FreeFileSync_#{version}_%5BDonation_Edition%5D_macOS.zip",
       using: NextcloudAuthDownloadStrategy
 
-  name "Ejectify"
-  desc "Menu bar app that safely ejects external drives before sleep"
-  homepage "https://ejectify.app"
+  name "FreeFileSync"
+  desc "Free file synchronization"
+  homepage "https://www.freefilesync.org"
 
-  app "Ejectify.app"
+  pkg "FreeFileSync_#{version}_[Donation_Edition].pkg"
+
+  uninstall pkgutil: [
+    "org.freefilesync.pkg.FreeFileSync",
+    "org.freefilesync.pkg.RealTimeSync",
+  ]
 
   zap trash: [
-    "~/Library/Application Support/Ejectify",
-    "~/Library/Preferences/app.ejectify.Ejectify.plist",
+    "~/Library/Application Support/FreeFileSync",
+    "~/Library/Preferences/FreeFileSync",
   ]
 end
