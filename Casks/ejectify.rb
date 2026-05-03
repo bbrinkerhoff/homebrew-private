@@ -21,8 +21,8 @@ unless defined?(NextcloudAuthDownloadStrategy)
 end
 
 cask "ejectify" do
-  version "HEAD-adf07c3"
-  sha256 "58f9ec24c8e45ea09b1687056ca9de8203ee93e8a217700be9515d98d2b7b72f"
+  version "2.0.1"
+  sha256 "ce762263f95ef67f29ed80b681b33a0477d813e9952ddcfd062e2f160e2719ff"
 
   url "https://nextcloud.invalid/Ejectify/Ejectify-#{version}.dmg",
       using: NextcloudAuthDownloadStrategy
