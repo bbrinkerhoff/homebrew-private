@@ -1,0 +1,220 @@
+name: Build OculiX
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 8 * * 2" # Every Tuesday at 8am UTC
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  build:
+    runs-on: macos-15
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout tap
+        uses: actions/checkout@v4
+
+      - name: Get latest OculiX release
+        id: upstream
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          VERSION=$(gh api repos/oculix-org/Oculix/releases/latest --jq '.tag_name | ltrimstr("v")')
+          if [[ -z "${VERSION}" ]]; then
+            echo "Failed to fetch latest OculiX version" >&2
+            exit 1
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=oculix-${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "jar_url=https://github.com/oculix-org/Oculix/releases/download/v${VERSION}/oculixide-${VERSION}-macos.jar" >> "$GITHUB_OUTPUT"
+
+      - name: Check if already built
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.upstream.outputs.tag }}"
+          if gh release view "${TAG}" &>/dev/null; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Already built ${TAG}, skipping."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Java 21
+        if: steps.check.outputs.skip == 'false'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Download OculiX JAR
+        if: steps.check.outputs.skip == 'false'
+        run: |
+          set -euo pipefail
+          readonly VERSION="${{ steps.upstream.outputs.version }}"
+          readonly JAR_URL="${{ steps.upstream.outputs.jar_url }}"
+          readonly JAR_NAME="oculixide-${VERSION}-macos.jar"
+          curl -fsSL "${JAR_URL}" -o "${JAR_NAME}"
+          echo "JAR_NAME=${JAR_NAME}" >> "$GITHUB_ENV"
+          echo "VERSION=${VERSION}" >> "$GITHUB_ENV"
+
+      - name: Build app icon
+        if: steps.check.outputs.skip == 'false'
+        run: |
+          set -euo pipefail
+          readonly ICON_URL="https://raw.githubusercontent.com/oculix-org/Oculix/master/IDE/src/main/resources/icons/oculix-ide.png"
+          curl -fsSL "${ICON_URL}" -o icon_src.png
+
+          # Build iconset at all required resolutions
+          mkdir -p AppIcon.iconset
+          for size in 16 32 128 256 512; do
+            sips -z "${size}" "${size}" icon_src.png \
+              --out "AppIcon.iconset/icon_${size}x${size}.png" >/dev/null
+            sips -z "$((size * 2))" "$((size * 2))" icon_src.png \
+              --out "AppIcon.iconset/icon_${size}x${size}@2x.png" >/dev/null
+          done
+          iconutil -c icns AppIcon.iconset -o AppIcon.icns
+
+      - name: Assemble app bundle
+        if: steps.check.outputs.skip == 'false'
+        run: |
+          set -euo pipefail
+          readonly VERSION="${VERSION}"
+          readonly APP_DIR="OculiX.app/Contents"
+
+          mkdir -p "${APP_DIR}/MacOS"
+          mkdir -p "${APP_DIR}/Resources"
+
+          # Launcher script — calls Homebrew's openjdk@21 explicitly
+          cat > "${APP_DIR}/MacOS/OculiX" <<'LAUNCHER'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          readonly JAVA="/opt/homebrew/opt/openjdk@21/bin/java"
+          readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+          readonly JAR="${SCRIPT_DIR}/../Resources/oculixide.jar"
+          if [[ ! -x "${JAVA}" ]]; then
+            osascript -e 'display alert "OculiX requires Java 21" message "Install it with: brew install openjdk@21" as warning'
+            exit 1
+          fi
+          exec "${JAVA}" \
+            -Dapple.awt.application.name=OculiX \
+            -jar "${JAR}" \
+            "$@"
+          LAUNCHER
+          chmod +x "${APP_DIR}/MacOS/OculiX"
+
+          # Resources
+          cp "${JAR_NAME}" "${APP_DIR}/Resources/oculixide.jar"
+          cp AppIcon.icns   "${APP_DIR}/Resources/AppIcon.icns"
+
+          # PkgInfo
+          printf 'APPL????' > "${APP_DIR}/PkgInfo"
+
+          # Info.plist
+          cat > "${APP_DIR}/Info.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "https://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>CFBundleDevelopmentRegion</key>
+            <string>English</string>
+            <key>CFBundleExecutable</key>
+            <string>OculiX</string>
+            <key>CFBundleIconFile</key>
+            <string>AppIcon</string>
+            <key>CFBundleIdentifier</key>
+            <string>org.oculix.ide</string>
+            <key>CFBundleInfoDictionaryVersion</key>
+            <string>6.0</string>
+            <key>CFBundleName</key>
+            <string>OculiX</string>
+            <key>CFBundleDisplayName</key>
+            <string>OculiX</string>
+            <key>CFBundlePackageType</key>
+            <string>APPL</string>
+            <key>CFBundleShortVersionString</key>
+            <string>${VERSION}</string>
+            <key>CFBundleVersion</key>
+            <string>${VERSION}</string>
+            <key>LSApplicationCategoryType</key>
+            <string>public.app-category.utilities</string>
+            <key>LSMinimumSystemVersion</key>
+            <string>10.15</string>
+            <key>NSHighResolutionCapable</key>
+            <true/>
+            <key>NSHumanReadableCopyright</key>
+            <string>Copyright © 2026 OculiX Contributors. MIT License.</string>
+          </dict>
+          </plist>
+          PLIST
+
+      - name: Package DMG
+        if: steps.check.outputs.skip == 'false'
+        run: |
+          set -euo pipefail
+          readonly VERSION="${VERSION}"
+          readonly DMG_NAME="OculiX-${VERSION}.dmg"
+          readonly TMP_DMG="/tmp/oculix-rw.dmg"
+          readonly MOUNT="/tmp/oculix-mount"
+
+          # Create a writable DMG large enough for the JAR (~200 MB)
+          hdiutil create \
+            -size 250m \
+            -fs HFS+ \
+            -volname "OculiX" \
+            "${TMP_DMG}"
+
+          hdiutil attach "${TMP_DMG}" -mountpoint "${MOUNT}" -nobrowse -quiet
+          cp -R "OculiX.app" "${MOUNT}/"
+          ln -s /Applications "${MOUNT}/Applications"
+          hdiutil detach "${MOUNT}" -quiet
+
+          # Convert to read-only compressed DMG
+          hdiutil convert "${TMP_DMG}" \
+            -format UDZO \
+            -imagekey zlib-level=9 \
+            -o "${DMG_NAME}"
+
+          echo "DMG_NAME=${DMG_NAME}" >> "$GITHUB_ENV"
+          echo "SHA256=$(shasum -a 256 "${DMG_NAME}" | awk '{print $1}')" >> "$GITHUB_ENV"
+
+      - name: Create release
+        if: steps.check.outputs.skip == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          readonly TAG="${{ steps.upstream.outputs.tag }}"
+          readonly VERSION="${VERSION}"
+
+          git tag "${TAG}"
+          git push origin "${TAG}"
+
+          gh release create "${TAG}" \
+            "${DMG_NAME}" \
+            --title "OculiX ${VERSION}" \
+            --notes "macOS DMG wrapping [oculix-org/Oculix@v${VERSION}](https://github.com/oculix-org/Oculix/releases/tag/v${VERSION}).
+
+Built from \`oculixide-${VERSION}-macos.jar\` with a shell-script launcher pointing at Homebrew's \`openjdk@21\`."
+
+      - name: Update cask
+        if: steps.check.outputs.skip == 'false'
+        run: |
+          set -euo pipefail
+          readonly VERSION="${VERSION}"
+
+          sed -i '' "s/version \".*\"/version \"${VERSION}\"/" Casks/oculix.rb
+          sed -i '' "s/sha256 \".*\"/sha256 \"${SHA256}\"/" Casks/oculix.rb
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Casks/oculix.rb
+          git commit -m "chore: update oculix to ${VERSION}"
+          git push
