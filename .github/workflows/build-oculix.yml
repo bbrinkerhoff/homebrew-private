@@ -65,6 +65,24 @@ jobs:
           echo "JAR_NAME=${JAR_NAME}" >> "$GITHUB_ENV"
           echo "VERSION=${VERSION}" >> "$GITHUB_ENV"
 
+      - name: Patch dark theme
+        if: steps.check.outputs.skip == 'false'
+        run: |
+          set -euo pipefail
+          readonly THEME_PATH="themes/OculixDarkLaf.properties"
+
+          # Confirm the theme file is actually present in the JAR before patching
+          if ! unzip -l "${JAR_NAME}" | grep -q "${THEME_PATH}"; then
+            echo "Error: ${THEME_PATH} not found inside ${JAR_NAME}" >&2
+            exit 1
+          fi
+
+          # zip -u replaces an existing entry in-place — no full repack needed
+          mkdir -p themes
+          cp "${GITHUB_WORKSPACE}/patches/OculixDarkLaf.properties" "${THEME_PATH}"
+          zip -u "${JAR_NAME}" "${THEME_PATH}"
+          rm -rf themes
+
       - name: Build app icon
         if: steps.check.outputs.skip == 'false'
         run: |
