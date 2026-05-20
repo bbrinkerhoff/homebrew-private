@@ -194,15 +194,16 @@ jobs:
           readonly TAG="${{ steps.upstream.outputs.tag }}"
           readonly VERSION="${VERSION}"
 
+          printf 'macOS DMG wrapping [oculix-org/Oculix@v%s](https://github.com/oculix-org/Oculix/releases/tag/v%s).\n\nBuilt from `oculixide-%s-macos.jar` with a shell-script launcher pointing at Homebrew'"'"'s `openjdk@21`.\n' \
+            "${VERSION}" "${VERSION}" "${VERSION}" > /tmp/oculix-release-notes.md
+
           git tag "${TAG}"
           git push origin "${TAG}"
 
           gh release create "${TAG}" \
             "${DMG_NAME}" \
             --title "OculiX ${VERSION}" \
-            --notes "macOS DMG wrapping [oculix-org/Oculix@v${VERSION}](https://github.com/oculix-org/Oculix/releases/tag/v${VERSION}).
-
-Built from \`oculixide-${VERSION}-macos.jar\` with a shell-script launcher pointing at Homebrew's \`openjdk@21\`."
+            --notes-file /tmp/oculix-release-notes.md
 
       - name: Update cask
         if: steps.check.outputs.skip == 'false'
