@@ -92,6 +92,15 @@ jobs:
           zip -u "${JAR_NAME}" "${THEME_PATH}"
           rm -rf themes
 
+      - name: Patch syntax highlight colours
+        if: steps.check.outputs.skip == 'false'
+        run: |
+          set -euo pipefail
+          # Replaces hardcoded light-mode keyword/string colours in
+          # SyntaxHighlightLabelView.class with dark-theme-friendly equivalents.
+          # Same-size byte substitution — no JVM offset tables are affected.
+          python3 "${GITHUB_WORKSPACE}/patches/patch_syntax_colors.py" "${JAR_NAME}"
+
       - name: Build app icon
         if: steps.check.outputs.skip == 'false'
         run: |
