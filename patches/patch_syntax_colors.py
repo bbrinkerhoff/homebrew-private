@@ -12,12 +12,18 @@ byte sequences so no JVM offset tables (exception handlers, line numbers,
 stack-map frames) need to be rewritten.
 
 Replacements:
-  Keywords: rgb(128,0,0)  → rgb(0,0,246)   #0000F6  vivid blue
+  Keywords: rgb(128,0,0)  → rgb(0,200,0)  #00C800  bright green
   Strings:  rgb(128,64,0) → rgb(210,120,0) #D27800  golden amber
+
+Colour rationale:
+  Vivid blue (#0000F6) was tried first but has poor contrast against the
+  EditorPane's programmatic selection background rgb(170,200,255) = #AAC8FF.
+  Bright green (#00C800) reads clearly on both the dark navy background
+  (#0A1028) and the light-blue selection, without clashing with amber strings.
 
 Encoding verification (all same byte counts):
   sipush 128  iconst_0    iconst_0    = 0x11 0x00 0x80  0x03  0x03  (5 bytes)
-  iconst_0    iconst_0    sipush 246  = 0x03  0x03  0x11 0x00 0xF6  (5 bytes) ✓
+  iconst_0    sipush 200  iconst_0    = 0x03  0x11 0x00 0xC8  0x03  (5 bytes) ✓
 
   sipush 128  bipush 64   iconst_0    = 0x11 0x00 0x80  0x10 0x40  0x03  (6 bytes)
   sipush 210  bipush 120  iconst_0    = 0x11 0x00 0xD2  0x10 0x78  0x03  (6 bytes) ✓
@@ -32,11 +38,11 @@ ENTRY = "org/sikuli/ide/SyntaxHighlightLabelView.class"
 
 # Before → after byte sequences (R, G, B push instructions only)
 PATCHES = [
-    # Keywords: rgb(128,0,0) dark red  →  rgb(0,0,246) vivid blue
+    # Keywords: rgb(128,0,0) dark red  →  rgb(0,200,0) bright green
     (
         bytes([0x11, 0x00, 0x80, 0x03, 0x03]),
-        bytes([0x03, 0x03, 0x11, 0x00, 0xF6]),
-        "keyword red→blue",
+        bytes([0x03, 0x11, 0x00, 0xC8, 0x03]),
+        "keyword red→green",
     ),
     # Strings: rgb(128,64,0) dark brown  →  rgb(210,120,0) golden amber
     (
