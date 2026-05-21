@@ -1,6 +1,6 @@
 cask "oculix" do
   version "3.0.4"
-  sha256 "a301f24134aaf1f8856db33c517b5f4fe2b3a2c4174c17d4ebbf9f771b62041b"
+  sha256 "455054370304c51d0bf67a9c1e0bc2380795a5676e402e2ad5de68af3155926b"
 
   url "https://github.com/bbrinkerhoff/homebrew-private/releases/download/oculix-#{version}/OculiX-#{version}.dmg"
 
