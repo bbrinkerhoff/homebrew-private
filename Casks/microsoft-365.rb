@@ -24,7 +24,7 @@ cask "microsoft-365" do
   version "16.109.26052523"
   sha256 "80d1846821552aa20c3ba397372e5d0265ab5ccbcbe56213f6070784c27d9d58"
 
-  url "https://nextcloud.invalid/Applications/Microsoft/Microsoft_365_and_Office_#{version}_Installer.pkg",
+  url "https://nextcloud.invalid/Microsoft/Microsoft_365_and_Office_#{version}_Installer.pkg",
       using:    NextcloudAuthDownloadStrategy,
       verified: "nextcloud.invalid"
 
