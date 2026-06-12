@@ -1,7 +1,7 @@
 --- a/IDE/src/main/java/org/sikuli/ide/SikulixIDE.java
 +++ b/IDE/src/main/java/org/sikuli/ide/SikulixIDE.java
 @@ -410,6 +410,9 @@
- 
+
      if (messages != null) {
        messages.initRedirect();
 +      for (IRunner runner : Runner.getRunners()) {
@@ -10,3 +10,19 @@
      }
      Debug.log("IDE: Putting all together - Restore last Session");
      try {
+--- a/API/src/main/java/org/sikuli/script/runners/JythonRunner.java
++++ b/API/src/main/java/org/sikuli/script/runners/JythonRunner.java
+@@ -146,6 +146,11 @@
+     // Since we have a static interpreter, we have to synchronize class wide
+     synchronized (JythonRunner.class) {
+       initAbort();
++      // Sync sys.stdout/sys.stderr with System.out on first run. The Jython
++      // interpreter is initialized in a background thread before initRedirect()
++      // replaces System.out with the IDE console pipe, so we re-sync here where
++      // both init() and initRedirect() are guaranteed to have completed.
++      if (!redirected) {
++        redirected = true;
++        jythonSupport.interpreterRedirect(System.out, System.err);
++      }
+
+       File pyFile = new File(scriptFile);
