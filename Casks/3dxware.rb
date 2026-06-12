@@ -17,7 +17,7 @@ cask "3dxware" do
 
   end
 
-  depends_on macos: ">= :monterey"
+  depends_on macos: :monterey
 
   pkg "Install 3Dconnexion software.pkg"
 end
