@@ -1,20 +1,19 @@
 --- a/API/src/main/java/org/sikuli/script/runners/JythonRunner.java
 +++ b/API/src/main/java/org/sikuli/script/runners/JythonRunner.java
-@@ -146,5 +146,19 @@
+@@ -146,5 +146,18 @@
      // Since we have a static interpreter, we have to synchronize class wide
      synchronized (JythonRunner.class) {
        initAbort();
 +      // Redirect sys.stdout/stderr to the IDE console pipe on first run.
-+      // interpreter.setOut() wraps the stream in a buffered PyFile (bufsize=-1)
-+      // that may not flush on newline; instead bind sys.stdout to a proxy that
-+      // writes directly to java.lang.System.out (the pipe after initRedirect).
++      // "print" is a Python 2 keyword so _stream.print(s) is a SyntaxError;
++      // use PrintStream.append(CharSequence) instead - same autoflush path.
 +      if (!redirected) {
 +        redirected = true;
 +        jythonSupport.interpreterExecString(
 +            "import sys as __sys, java.lang.System as __JS\n"
 +            + "class __OculixOut:\n"
 +            + "    softspace=0\n"
-+            + "    def write(self,s): __JS.out.print(s)\n"
++            + "    def write(self,s): __JS.out.append(s)\n"
 +            + "    def flush(self): __JS.out.flush()\n"
 +            + "__sys.stdout=__sys.stderr=__OculixOut()\n");
 +      }
