@@ -31,6 +31,7 @@ jobs:
           fi
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "tag=oculix-${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "jar_url=https://github.com/oculix-org/Oculix/releases/download/v${VERSION}/oculixide-${VERSION}-macos.jar" >> "$GITHUB_OUTPUT"
 
       - name: Check if already built
         id: check
@@ -62,33 +63,14 @@ jobs:
           distribution: temurin
           java-version: "21"
 
-      - name: Build OculiX from source
+      - name: Download OculiX JAR
         if: steps.check.outputs.skip == 'false'
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           readonly VERSION="${{ steps.upstream.outputs.version }}"
-
-          # Download source at the exact release tag
-          gh api repos/oculix-org/Oculix/tarball/v${VERSION} > oculix-src.tgz
-          mkdir oculix-src
-          tar -xf oculix-src.tgz -C oculix-src --strip-components=1
-
-          # Apply the stdout redirect fix
-          patch -p1 -d oculix-src < "${GITHUB_WORKSPACE}/patches/fix-stdout-redirect.patch"
-
-          # Build — API must be installed first so IDE can resolve it as a dependency
-          (cd oculix-src && mvn -B -pl API install -DskipTests | grep -v "^\[INFO\].*Download")
-          (cd oculix-src && mvn -B -pl IDE -P complete-mac-jar package -DskipTests | grep -v "^\[INFO\].*Download")
-
-          readonly JAR_NAME="oculix-src/IDE/target/oculixide-${VERSION}-complete-mac.jar"
-          if [[ ! -f "${JAR_NAME}" ]]; then
-            echo "Expected JAR not found: ${JAR_NAME}" >&2
-            ls oculix-src/IDE/target/*.jar >&2
-            exit 1
-          fi
-
+          readonly JAR_URL="${{ steps.upstream.outputs.jar_url }}"
+          readonly JAR_NAME="oculixide-${VERSION}-macos.jar"
+          curl -fsSL "${JAR_URL}" -o "${JAR_NAME}"
           echo "JAR_NAME=${JAR_NAME}" >> "$GITHUB_ENV"
           echo "VERSION=${VERSION}" >> "$GITHUB_ENV"
 
@@ -248,8 +230,8 @@ jobs:
           readonly TAG="${{ steps.upstream.outputs.tag }}"
           readonly VERSION="${VERSION}"
 
-          printf 'macOS DMG wrapping [oculix-org/Oculix@v%s](https://github.com/oculix-org/Oculix/releases/tag/v%s).\n\nBuilt from source with a fix for Jython stdout not appearing in the IDE console.\n' \
-            "${VERSION}" "${VERSION}" > /tmp/oculix-release-notes.md
+          printf 'macOS DMG wrapping [oculix-org/Oculix@v%s](https://github.com/oculix-org/Oculix/releases/tag/v%s).\n\nBuilt from `oculixide-%s-macos.jar` with a shell-script launcher pointing at Homebrew'"'"'s `openjdk@21`.\n' \
+            "${VERSION}" "${VERSION}" "${VERSION}" > /tmp/oculix-release-notes.md
 
           git tag "${TAG}"
           git push origin "${TAG}"
