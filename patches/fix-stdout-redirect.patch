@@ -1,0 +1,12 @@
+--- a/IDE/src/main/java/org/sikuli/ide/SikulixIDE.java
++++ b/IDE/src/main/java/org/sikuli/ide/SikulixIDE.java
+@@ -410,6 +410,9 @@
+ 
+     if (messages != null) {
+       messages.initRedirect();
++      for (IRunner runner : Runner.getRunners()) {
++        runner.redirect(null, null);
++      }
+     }
+     Debug.log("IDE: Putting all together - Restore last Session");
+     try {
