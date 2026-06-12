@@ -18,29 +18,27 @@ jobs:
       - name: Checkout tap
         uses: actions/checkout@v5
 
-      - name: Get latest Ejectify commit
+      - name: Get latest Ejectify tag
         id: upstream
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          SHA=$(gh api repos/nielsmouthaan/ejectify-macos/commits/main --jq '.sha')
-          if [[ -z "$SHA" ]]; then
-            echo "Failed to fetch upstream SHA" >&2
+          TAG=$(gh api repos/nielsmouthaan/ejectify-macos/tags --jq '.[0].name')
+          if [[ -z "$TAG" ]]; then
+            echo "Failed to fetch upstream tag" >&2
             exit 1
           fi
-          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
-          echo "short_sha=${SHA:0:7}" >> "$GITHUB_OUTPUT"
-          echo "version=HEAD-${SHA:0:7}" >> "$GITHUB_OUTPUT"
+          VERSION="${TAG#v}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Check if already built
         id: check
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="ejectify-${{ steps.upstream.outputs.short_sha }}"
-          if gh release view "$TAG" &>/dev/null; then
+          CURRENT=$(grep 'version "' Casks/ejectify.rb | sed 's/.*version "\(.*\)"/\1/')
+          if [[ "$CURRENT" == "${{ steps.upstream.outputs.version }}" ]]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
-            echo "Already built $TAG, skipping."
+            echo "Already at $CURRENT, skipping."
           else
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
@@ -50,7 +48,7 @@ jobs:
         run: |
           git clone https://github.com/nielsmouthaan/ejectify-macos.git
           cd ejectify-macos
-          git checkout ${{ steps.upstream.outputs.sha }}
+          git checkout ${{ steps.upstream.outputs.tag }}
 
       - name: Build
         if: steps.check.outputs.skip == 'false'
@@ -78,13 +76,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="ejectify-${{ steps.upstream.outputs.short_sha }}"
+          TAG="ejectify-${{ steps.upstream.outputs.version }}"
           git tag "$TAG"
           git push origin "$TAG"
           gh release create "$TAG" \
             Ejectify.zip \
             --title "Ejectify ${{ steps.upstream.outputs.version }}" \
-            --notes "Built from [nielsmouthaan/ejectify-macos@${{ steps.upstream.outputs.short_sha }}](https://github.com/nielsmouthaan/ejectify-macos/commit/${{ steps.upstream.outputs.sha }})"
+            --notes "Built from [nielsmouthaan/ejectify-macos@${{ steps.upstream.outputs.tag }}](https://github.com/nielsmouthaan/ejectify-macos/tree/${{ steps.upstream.outputs.tag }})"
 
       - name: Update cask
         if: steps.check.outputs.skip == 'false'
