@@ -114,6 +114,9 @@ jobs:
           fi
           exec "${JAVA}" \
             -Dapple.awt.application.name=SikuliX \
+            -Xdock:name=SikuliX \
+            -Xdock:icon="${SCRIPT_DIR}/../Resources/AppIcon.icns" \
+            -Dapple.laf.useScreenMenuBar=true \
             -jar "${JAR}" \
             "$@"
           LAUNCHER

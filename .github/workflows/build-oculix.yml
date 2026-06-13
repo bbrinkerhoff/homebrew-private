@@ -141,6 +141,9 @@ jobs:
           fi
           exec "${JAVA}" \
             -Dapple.awt.application.name=OculiX \
+            -Xdock:name=OculiX \
+            -Xdock:icon="${SCRIPT_DIR}/../Resources/AppIcon.icns" \
+            -Dapple.laf.useScreenMenuBar=true \
             -jar "${JAR}" \
             "$@"
           LAUNCHER
