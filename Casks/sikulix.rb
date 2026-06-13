@@ -1,6 +1,6 @@
 cask "sikulix" do
   version "2.0.5"
-  sha256 "0c56f19121b73d1370fd95cfae536458dcc607afe02ec4d03873d335e928e610"
+  sha256 "bf20552913e5ca8ebd42fe3979c80bba025bb41bceb56436b4a998e8fb8181de"
 
   url "https://github.com/bbrinkerhoff/homebrew-private/releases/download/sikulix-#{version}/SikuliX-#{version}.dmg"
 
