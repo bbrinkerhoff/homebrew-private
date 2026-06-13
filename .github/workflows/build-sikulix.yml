@@ -164,6 +164,12 @@ jobs:
           </plist>
           PLIST
 
+      - name: Sign app bundle
+        if: steps.check.outputs.skip == 'false'
+        run: |
+          set -euo pipefail
+          codesign --sign - --force --deep SikuliX.app
+
       - name: Package DMG
         if: steps.check.outputs.skip == 'false'
         run: |
