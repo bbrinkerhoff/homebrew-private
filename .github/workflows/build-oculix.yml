@@ -128,25 +128,54 @@ jobs:
           mkdir -p "${APP_DIR}/MacOS"
           mkdir -p "${APP_DIR}/Resources"
 
-          # Launcher script — calls Homebrew's openjdk@21 explicitly
-          cat > "${APP_DIR}/MacOS/OculiX" <<'LAUNCHER'
-          #!/usr/bin/env bash
-          set -euo pipefail
-          readonly JAVA="/opt/homebrew/opt/openjdk@21/bin/java"
-          readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-          readonly JAR="${SCRIPT_DIR}/../Resources/oculixide.jar"
-          if [[ ! -x "${JAVA}" ]]; then
-            osascript -e 'display alert "OculiX requires Java 21" message "Install it with: brew install openjdk@21" as warning'
-            exit 1
-          fi
-          exec "${JAVA}" \
-            -Dapple.awt.application.name=OculiX \
-            -Xdock:name=OculiX \
-            -Xdock:icon="${SCRIPT_DIR}/../Resources/AppIcon.icns" \
-            -Dapple.laf.useScreenMenuBar=true \
-            -jar "${JAR}" \
-            "$@"
-          LAUNCHER
+          # Compiled Mach-O launcher — see build-sikulix.yml for rationale.
+          cat > /tmp/oculix_launcher.c << 'C'
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <libgen.h>
+#include <mach-o/dyld.h>
+
+int main(int argc, char *argv[]) {
+    char execPath[4096];
+    uint32_t size = sizeof(execPath);
+    if (_NSGetExecutablePath(execPath, &size) != 0) {
+        fprintf(stderr, "OculiX: could not resolve executable path\n");
+        return 1;
+    }
+
+    char *dir = dirname(execPath);
+    char jarPath[4096], iconPath[4096], dockIcon[4096];
+    snprintf(jarPath,  sizeof(jarPath),  "%s/../Resources/oculixide.jar", dir);
+    snprintf(iconPath, sizeof(iconPath), "%s/../Resources/AppIcon.icns",  dir);
+    snprintf(dockIcon, sizeof(dockIcon), "-Xdock:icon=%s", iconPath);
+
+    const char *java = "/opt/homebrew/opt/openjdk@21/bin/java";
+    if (access(java, X_OK) != 0) {
+        fprintf(stderr, "OculiX: Java 21 not found at %s\n"
+                        "Install it with: brew install openjdk@21\n", java);
+        return 1;
+    }
+
+    int fixed = 7;
+    char **args = malloc((fixed + argc) * sizeof(char *));
+    args[0] = (char *)java;
+    args[1] = "-Dapple.awt.application.name=OculiX";
+    args[2] = "-Xdock:name=OculiX";
+    args[3] = dockIcon;
+    args[4] = "-Dapple.laf.useScreenMenuBar=true";
+    args[5] = "-jar";
+    args[6] = jarPath;
+    for (int i = 1; i < argc; i++) args[fixed - 1 + i] = argv[i];
+    args[fixed - 1 + argc] = NULL;
+
+    execv(java, args);
+    fprintf(stderr, "OculiX: execv failed\n");
+    return 1;
+}
+C
+          clang -o "${APP_DIR}/MacOS/OculiX" /tmp/oculix_launcher.c
           chmod +x "${APP_DIR}/MacOS/OculiX"
 
           # Resources
