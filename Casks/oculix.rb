@@ -8,7 +8,6 @@ cask "oculix" do
   desc "Open-source visual automation IDE using pixel-based image recognition"
   homepage "https://github.com/oculix-org/Oculix"
 
-  depends_on macos: :catalina
   depends_on formula: "openjdk@21"
 
   app "OculiX.app"
