@@ -8,7 +8,6 @@ cask "sikulix" do
   desc "Visual automation and testing tool using screenshots"
   homepage "https://github.com/oculix-org/SikuliX1"
 
-  depends_on macos: :catalina
   depends_on formula: "openjdk@21"
 
   app "SikuliX.app"
