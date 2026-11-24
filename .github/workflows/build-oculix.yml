@@ -32,6 +32,7 @@ jobs:
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "tag=oculix-${VERSION}" >> "$GITHUB_OUTPUT"
           echo "jar_url=https://github.com/oculix-org/Oculix/releases/download/v${VERSION}/oculixide-${VERSION}-macos.jar" >> "$GITHUB_OUTPUT"
+          echo "mcp_jar_url=https://github.com/oculix-org/Oculix/releases/download/v${VERSION}/oculix-mcp-server-${VERSION}.jar" >> "$GITHUB_OUTPUT"
 
       - name: Check if already built
         id: check
@@ -73,6 +74,15 @@ jobs:
           curl -fsSL "${JAR_URL}" -o "${JAR_NAME}"
           echo "JAR_NAME=${JAR_NAME}" >> "$GITHUB_ENV"
           echo "VERSION=${VERSION}" >> "$GITHUB_ENV"
+
+      - name: Download OculiX MCP server JAR
+        if: steps.check.outputs.skip == 'false'
+        run: |
+          set -euo pipefail
+          readonly MCP_JAR_URL="${{ steps.upstream.outputs.mcp_jar_url }}"
+          readonly MCP_JAR_NAME="oculix-mcp-server-${VERSION}.jar"
+          curl -fsSL "${MCP_JAR_URL}" -o "${MCP_JAR_NAME}"
+          echo "MCP_JAR_NAME=${MCP_JAR_NAME}" >> "$GITHUB_ENV"
 
       - name: Patch dark theme
         if: steps.check.outputs.skip == 'false'
@@ -134,6 +144,7 @@ jobs:
 
           # Resources
           cp "${JAR_NAME}" "${APP_DIR}/Resources/oculixide.jar"
+          cp "${MCP_JAR_NAME}" "${APP_DIR}/Resources/oculix-mcp-server.jar"
           cp AppIcon.icns   "${APP_DIR}/Resources/AppIcon.icns"
 
           # PkgInfo
@@ -192,9 +203,9 @@ jobs:
           readonly TMP_DMG="/tmp/oculix-rw.dmg"
           readonly MOUNT="/tmp/oculix-mount"
 
-          # Create a writable DMG large enough for the JAR (~200 MB)
+          # Create a writable DMG large enough for the IDE + MCP server JARs (~340 MB)
           hdiutil create \
-            -size 250m \
+            -size 450m \
             -fs HFS+ \
             -volname "OculiX" \
             "${TMP_DMG}"
@@ -222,8 +233,8 @@ jobs:
           readonly TAG="${{ steps.upstream.outputs.tag }}"
           readonly VERSION="${VERSION}"
 
-          printf 'macOS DMG wrapping [oculix-org/Oculix@v%s](https://github.com/oculix-org/Oculix/releases/tag/v%s).\n\nBuilt from `oculixide-%s-macos.jar` with a shell-script launcher pointing at Homebrew'"'"'s `openjdk@21`.\n' \
-            "${VERSION}" "${VERSION}" "${VERSION}" > /tmp/oculix-release-notes.md
+          printf 'macOS DMG wrapping [oculix-org/Oculix@v%s](https://github.com/oculix-org/Oculix/releases/tag/v%s).\n\nBuilt from `oculixide-%s-macos.jar` with a shell-script launcher pointing at Homebrew'"'"'s `openjdk@21`.\n\nIncludes `oculix-mcp-server-%s.jar` at `OculiX.app/Contents/Resources/oculix-mcp-server.jar`.\n' \
+            "${VERSION}" "${VERSION}" "${VERSION}" "${VERSION}" > /tmp/oculix-release-notes.md
 
           git tag "${TAG}"
           git push origin "${TAG}"
